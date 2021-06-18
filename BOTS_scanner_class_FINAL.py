@@ -283,7 +283,7 @@ def cluster_differences(cluster_BO_matrices):
     Returns
     -------
     top_contributions : dict
-        A dictionary of top contributions where the key is the pair of clusters and the entry is the list of pairs 
+        A dictionary of top contributions where the key is a tuple containing the pair of clusters and the entry is the list of pairs 
         of atom indices that contribute most to a change in bond order between the frames.
     '''
     num_clusters = len(cluster_BO_matrices)
@@ -613,12 +613,13 @@ def unified_scoring(transition_matrix, binary_cluster_time_series):
     return tpr_fpr, window_size
 
 def get_AUC(tpr_fpr):
-    ''' calculates the area under the curve (AUC) for a given series of (tpr, fpr) points
+    ''' calculates the area under the curve (AUC) for a given series of (tpr, fpr) points,
+    works for either scoring method ("bondwise or "unified).
     
     Parameters
     ----------
     tpr_fpr : list
-        List containing each [tpr, fpr] as elements.
+        List containing each [tpr, fpr] point as elements.
 
     Returns
     -------
@@ -745,7 +746,7 @@ def truncate_colormap(cmap, minval=0.0, maxval=1.0, resolution=100, n_separation
 
 class BOTS_scanner:
     def __init__(self, elements, cluster_time_series, bond_order_list_name, opt_bond_order_list_name, coors_list_name, sampling_rate, average_clusters, sigma_list=[], threshold_list=[]):
-        ''' initialize a BOTS_scanner object with a sigma list and a threshold list
+        ''' initialize a BOTS_scanner (parameter heat map) object with a sigma list and a threshold list
         
         Parameters
         ----------
@@ -797,14 +798,17 @@ class BOTS_scanner:
         # all rows and columns of time series. Adding one to each element so atom indices begin at one
         self.raw_rows = np.array([x+1 for x in self.raw_rows])
         self.raw_cols = np.array([x+1 for x in self.raw_cols])
+        # create reference (cluster) time series with ones at reaction event locations and zeros everywhere else
         self.binary_cluster_time_series = np.diff(cluster_time_series).astype(bool)
         # number of reference reaction events
         self.num_all_ref = np.count_nonzero(self.binary_cluster_time_series)
+        # dictionary to hold information from a single_score() (single map point, one sigma and one threshold) call
         self.parameter_data_cache = {}
         # self.all_ref_transitions -> dictionary containing transition locations as keys and transition objects as values
         # self.no_and_frames -> a list that keeps track of how many frames belong to each cluster. 
         # Each element: [cluster, number of MD frames belonging to that cluster]            
         self.all_ref_transitions, self.no_and_frames = make_ref_dictionary(self.traj_length, self.num_atoms, self.cluster_time_series, self.opt_BO_matrix, average_clusters)
+        # create output file that shows reference reaction event locations, reaction event "lifetimes", and cluster indices of transitions
         with open('ref_rxn_lifetimes.txt', 'w') as lifetime_file:
             lifetime_file.write('List of reference reaction event locations and their lifetimes')
             lifetime_file.write('\n\'LEFT CLUSTER\' and \'RIGHT CLUSTER\' refer to the clusters of the reference reaction event transition')
@@ -847,6 +851,8 @@ class BOTS_scanner:
         self.output.append('\n\n***** INPUT FILES *****')
         self.output.append('\nRaw Bond Order File: ' + bond_order_list_name)
         self.output.append('\nOptimized Bond Order File: ' + opt_bond_order_list_name)
+        self.output.append('\nxyz file format coordinates file: ' + coors_list_name)
+        self.output.append('\nclustering time series results pickle file (default timeseries_1.0.data)')
         self.output.append('\n\n***** PROGRAM SETTINGS *****')
         if average_clusters == True:
             self.output.append('\nCluster bond order matrices averaged')
@@ -855,23 +861,23 @@ class BOTS_scanner:
         self.output.append('\n\n***** SMOOTHING AND THRESHOLD PARAMETERS *****')
         self.output.append('\nOrder(s) used for low-pass filter:\n')
         self.output.append(str(self.order))
-        self.output.append('\nHere is the list of sigma values:\n')
+        self.output.append('\nHere is the list of sigma (smoothing) values:\n')
         self.output.append(print_list(sigma_list))
         self.output.append('\nHere is the list of threshold values:\n')
         self.output.append(print_list(threshold_list))
         self.output.append('\n\n***** MD AND MOLECULE INFO *****')
         self.output.append('\nNumber of atoms: ' + str(self.num_atoms))
         num_pairs = self.num_atoms*(self.num_atoms -1)*0.5
-        self.output.append('\nNumber of atom pairs: ' + str(num_pairs))
+        self.output.append('\nNumber of atom pairs: ' + str(int(num_pairs)))
         self.output.append('\nAtom list: ')
         self.output.append(print_list(self.elements))
         self.output.append('\nNumber of frames in MD trajectory: ' + str(self.traj_length))
-        self.output.append('\n\n***** PI INVARIANT INFO *****')
+        self.output.append('\n\n***** REFERENCE SET INFO *****')
         self.output.append('\n(%i Total Clusters)'%len(self.no_and_frames))
         for i in self.no_and_frames:
             self.output.append('\nCluster %i contains %i frames'%(i[0], i[1]))
         self.output.append('\n\nBond-by-bond information')
-        self.output.append('\nThere are %i total transitions in the gold standard data'%self.num_all_ref)
+        self.output.append('\nThere are %i total transitions in the reference data'%self.num_all_ref)
         temp_unordered = []
         self.output.append('\n\nTemporal Transition Location\t\tCluster Transition\t\tAtom Pairs Associated with Transition')
         for key, value in self.all_ref_transitions.items():
@@ -888,7 +894,7 @@ class BOTS_scanner:
                 if v not in ref_atompairs_in_bots:
                     ref_atompairs_in_bots.append(v)
         ref_atompairs_in_bots = sorted(ref_atompairs_in_bots, key=operator.itemgetter(0, 1))
-        bots_string = '\n\nAtom pairs associated with reference reaction event transitions: ' + print_list(ref_atompairs_in_bots)
+        bots_string = '\n\nAtom pairs associated with one or more reference reaction event transitions: ' + print_list(ref_atompairs_in_bots)
         self.output.append(bots_string)
 
     def generate_output(self):
@@ -935,14 +941,7 @@ class BOTS_scanner:
         '''
         print("TOTAL NUMBER OF REFERENCE TRANSITIONS ", self.num_all_ref)
         self.score_matrix = np.zeros([len(self.threshold_list), len(self.sigma_list)])
-        # create BOTS dictionary data, if it does not already exist
-        if os.path.exists('BOTS_dictionary.p'):
-            print("\nUSING DICTIONARY\n")
-            dictionary = pickle.load(open('BOTS_dictionary.p'))
-            dictionary_exists = True# should be set to 'True', this is a work-around for faster testing True
-        else:
-            print("\nNEED TO MAKE DICTIONARY\n")
-            dictionary_exists = False
+        
         add_to_cache = False
         # iterate over each sigma value
         for i, sigma in enumerate(self.sigma_list):
@@ -1221,8 +1220,6 @@ class BOTS_scanner:
         
         Parameters
         ----------
-        heat_map_title : string
-            Name of heat map file.
         sigma_list : np.array
             List of sigma parameters.
         BO_threshold_list : np.array
@@ -1235,7 +1232,7 @@ class BOTS_scanner:
         
         Files Created
         -------------
-        heat_map_title
+        heat_map_title.pdf
             Heat map of sigma and threshold combinations.        
         '''
         # if the pickle data for the score_matrix already exists, then load it
@@ -1244,21 +1241,14 @@ class BOTS_scanner:
         # if the pickle data for the score-matrix doesn't already exist
         else:
             # still need to figure out what to do here
-            score_matrix = []
+            raise ValueError("No stored pickled score_matrix file. First run the get_scores() method.")
+#            score_matrix = []
         color_min = 0.5
         color_max = 1.0
 #        rot_box_scores = np.rot90(np.array(score_matrix))
-        rot_box_scores = np.flipud(np.array(score_matrix)) # flip for purpose of fitting
+        rot_box_scores = np.flipud(np.array(score_matrix)) # flip for purpose of plotting
         num_rows = len(rot_box_scores)
         num_cols = len(rot_box_scores[0])
-        '''
-        if len(sigma_list) != num_rows:
-            num_rows = len(sigma_list)
-            rot_box_scores = rot_box_scores[0:len(sigma_list), :]
-        if len(BO_threshold_list) != num_cols:
-            num_cols = len(BO_threshold_list)
-            rot_box_scores = rot_box_scores[:, 0:len(BO_threshold_list)]
-        '''
 #        print("num_rows ", num_rows)
 #        print("num_cols ", num_cols)
         fig, ax = plt.subplots(figsize=[6, 4])
@@ -1280,43 +1270,33 @@ class BOTS_scanner:
         plt.tick_params(labelsize=font_size)
         tick_limit = 9 # arbitrary, but here to help make sure the axes don't get to crowded
         if num_cols > tick_limit: # reduce the number of row tick marks when there are lots of sigmas
-#            col_locs = np.arange(0, num_cols, int(num_cols/4))
-#            col_locs = [0, 19, 39, 59]
-            col_locs = [0, 34, 69, 104]
-#            print("here is the col_locs list", col_locs)
-            # add the correct tick labels
-#            plt.xticks(col_locs, ['%.0f'%f for f in sigma_list[col_locs]])
-#            plt.xticks(col_locs, [10, 30, 50, 70])
-#            plt.xticks(col_locs, [15, 35, 55, 75])
-            plt.xticks(col_locs, [35, 70, 105, 140])
-        elif num_cols <= tick_limit:
+            col_locs = np.arange(0, num_cols, int(num_cols/4))
+            print("here is the col_locs list", col_locs)
+        elif num_cols <= tick_limit: # if there are few sigmas, place tick marks for each
             col_locs = np.arange(0, num_cols)
-#            print("here is the col_locs list", col_locs)
-            plt.xticks(col_locs, ['%.0f'%f for f in sigma_list[col_locs]])
-        if num_rows > tick_limit: # reduce the number of col tick marks when there are lots of sigmas
+        if num_rows > tick_limit: # reduce the number of col tick marks when there are lots of thresholds
             row_locs = np.arange(0, num_rows, int(num_rows/4))
-#            row_locs = [0, 9, 19]
-            row_locs = [0, 5, 10]
-#            row_locs = [0, 9]#, 19]
-#            print("here is the row_locs list", row_locs)
-            # add the correct tick labels
-#            plt.yticks(row_locs, np.flipud(['%.1f'%f for f in BO_threshold_list[row_locs]]))
-#            plt.yticks(row_locs, np.flipud([1, 2, 3]))
-#            plt.yticks(row_locs, np.flipud([1, 2]))
-            plt.yticks(row_locs, np.flipud([0.5, 1.0, 1.5]))
-        elif num_rows <= tick_limit:
-            print("num_rows ", num_rows)
+#            print("here is the adjusted row_locs list", row_locs)
+#            print("total number of rows", num_rows)
+#            print("thresholds", BO_threshold_list)
+#            print("thresholds flipped", np.flipud(BO_threshold_list))
+        elif num_rows <= tick_limit: # if there are few thresholds, place tick marks for each
+#            print("num_rows ", num_rows)
             row_locs = np.arange(0, num_rows)
-#            print("here is the row_locs list", row_locs)
-            print("TEST THIS", np.flipud(row_locs))
-            plt.yticks(row_locs, np.flipud(BO_threshold_list[row_locs]))
-#        plt.title('abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ') #testing font type
+#            print("TEST THIS", np.flipud(row_locs))
+#            plt.yticks(row_locs, np.flipud(['%.1f'%f for f in BO_threshold_list[row_locs]]))
+        plt.xticks(col_locs, ['%.0f'%f for f in sigma_list[col_locs]])
+        flip_list = np.flipud(BO_threshold_list)
+        plt.yticks(row_locs, ['%.1f'%f for f in flip_list[row_locs]])
+        plt.ylim(num_rows, 0)
+        print("here is the row_locs list", ['%.1f'%f for f in flip_list[row_locs]])
 #        plt.rcParams.update({'font.size': font_size})
         plt.xlabel(r'$\sigma$ ' + r'$(cm^{-1})$', fontsize=font_size)#, labelpad = 30)
         plt.ylabel(r'$\mu$ (multiple of $\sigma$)', fontsize=font_size)
         import matplotlib.colors as colors
         # starting x-coordinate, starting y-coordinate, width, height
 #        ax_color = fig.add_axes([0.93, 0.238, 0.03, 0.529])
+        # add colorbar to a specific location
         ax_color = fig.add_axes([0.93, 0.125, 0.03, 0.756])
         matplotlib.colorbar.ColorbarBase(ax_color, cmap=cmap, norm=norm, orientation='vertical', ticks=[0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
         # using 12 instead of 14 because of rescaling the colorbar 
@@ -1324,7 +1304,8 @@ class BOTS_scanner:
 #        cbar = fig.colorbar(im, ticks=[0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
 #        cbar.ax.set_yticklabels([0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
 #        fig.tight_layout()
-        heat_map_title = 'HEAT_MAP.pdf'
+        heat_map_title = 'heat_map_sig_%.0f-%.0f_thresh_%.1f-%.1f.pdf'%(sigma_list[0], sigma_list[-1], BO_threshold_list[0], BO_threshold_list[-1])
+#        heat_map_title = 'HEAT_MAP.pdf'
         plt.savefig(heat_map_title, bbox_inches='tight')
 
     def generate_all_plots(self, sigma, threshold, score_process='bondwise'):
@@ -1351,11 +1332,14 @@ class BOTS_scanner:
             self.plot_bondwise_comparison(sigma=sigma, threshold=threshold)
             self.plot_cluster_pairs_vs_bots(sigma=sigma, threshold=threshold)
             self.plot_reference_distances(sigma=sigma, threshold=threshold)
+        # create these plots either way
         self.plot_regular_vs_FT_vs_deriv(sigma=sigma, threshold=threshold, score_process=score_process)
         self.plot_union_comparison_and_auc(sigma=sigma, threshold=threshold, score_process=score_process)
     
     def plot_regular_vs_FT_vs_deriv(self, sigma, threshold, score_process='bondwise'):
         '''
+        *** included in generate_all_plots ***
+        
         Plots a three column plot for a given sigma and threshold where each row is a contributing (non-zero number of 
         predicted reaction events) atom pair. First column is the raw and smoothed BO time series. Second column is the
         raw Fourier Transform (FT), the smooth FT, and the Butterworth filter. Third column is the first time derivative
@@ -1521,7 +1505,10 @@ class BOTS_scanner:
     ''' NEEDS SOME CLEAN-UP STILL
     '''
     def plot_cluster_pairs_vs_bots(self, sigma, threshold):
-        ''' create a plot of cluster index vs reference reaction event index
+        ''' 
+        *** included in generate_all_plots ***
+
+        create a plot of cluster index vs reference reaction event index
         aka "arrow plot"
         
         Parameters
@@ -1680,7 +1667,10 @@ class BOTS_scanner:
         plt.savefig(plt_title, bbox_inches='tight')
 
     def plot_reference_distances(self, sigma, threshold):
-        ''' create a plot of cluster index vs reference reaction event index
+        ''' 
+        *** included in generate_all_plots ***
+
+        create a plot of cluster index vs reference reaction event index
         aka "arrow plot"
         
         Parameters
@@ -1802,7 +1792,10 @@ class BOTS_scanner:
                 out_file.write(new_string)
 
     def plot_union_comparison_and_auc(self, sigma, threshold, score_process='bondwise'):
-        ''' create a two-panel plot with the left plot showing reaction event lines and
+        ''' 
+        *** included in generate_all_plots ***
+
+        create a two-panel plot with the left plot showing reaction event lines and
         descending windows and the right plot showing as many TPR/FPR plots generated for
         the objective function.
         
@@ -1893,7 +1886,10 @@ class BOTS_scanner:
         plt.savefig(plot_title)
 
     def plot_bondwise_comparison(self, sigma, threshold):
-        ''' create a plot for the 'bondwise' scoring method, but still using derivatives
+        ''' 
+        *** included in generate_all_plots ***
+        
+        create a plot for the 'bondwise' scoring method, but still using derivatives
         
         Parameters
         ----------
