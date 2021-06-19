@@ -13,7 +13,7 @@ Marshall Hutchings, Johnson Liu, Yudong Qiu, Chenchen Song, and Lee-Ping Wang
 Journal of Chemical Theory and Computation 2020 16 (3), 1606-1617
 DOI: 10.1021/acs.jctc.9b01039
 
-The BO_time_eries_FINAL.py code requires 4 input files (samples provided). 
+The BO_time_series_FINAL.py code requires 4 input files (samples provided). 
 
 1. xyz coordinates (sample -> coors.xyz)
       
