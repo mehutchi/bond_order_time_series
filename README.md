@@ -29,4 +29,5 @@ Running the code with three sigma (smoothing parameter) inputs (start, stop, inc
 
 Smoothing parameter and threshold heatmap for sample data set:
 
-[heat_map_sig_35-150_thresh_0.1-1.5.pdf](https://github.com/mehutchi/bond_order_time_series/files/6689729/heat_map_sig_35-150_thresh_0.1-1.5.pdf)
+![image](https://user-images.githubusercontent.com/20996215/122833449-d892d080-d2a1-11eb-87ca-79bb4fedeb9e.png)
+
