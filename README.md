@@ -29,5 +29,40 @@ Running the code with three sigma (smoothing parameter) inputs (start, stop, inc
 
 Smoothing parameter and threshold heatmap for sample data set:
 
-![image](https://user-images.githubusercontent.com/20996215/122833449-d892d080-d2a1-11eb-87ca-79bb4fedeb9e.png)
+![image](https://user-images.githubusercontent.com/20996215/122833545-02e48e00-d2a2-11eb-8b26-f6589d86f669.png)
 
+Objective function scores of zero and those below 0.5 are shown as whitespace and those from 0.5-1.0 according to the colorbar.  The heatmap helps the user calibrate the method for a given system type, in this example, an iron carbonyl system. Once the most optimally scoring region of the heatmap is identified the user can choose a parameter combination (in this example, we will select sigma = 50 and mu = 0.7\*sigma) setting to predict reaction events across large AIMD trajectories with high fidelity. 
+
+Once the method settings have been identified, we can re-run the code with a single sigma and threshold as inputs to see the predictions. This option also produces five plots to analyze quality of fit (showing sigma = 50 and mu = 0.7\*sigma):
+
+1. Simplified reference vs predictions plot with corresponding AUC
+
+![image](https://user-images.githubusercontent.com/20996215/122836227-b64f8180-d2a6-11eb-8fd0-5aa27b88bc50.png)
+
+Left Panel: red - reference reaction locations, blue - predicted reaction locations, orange - expanding windows to measure distance from predicted to reference reactions (differs depending on objective function choice) halted once 100% of references detected
+
+Right Panel: TPR vs FPR plot, similar to receiver operating characteristic. Dark orange - (TPR, FPR), light orange - area under the curve, grey - remainder of TPR vs FPR plot
+
+2. Expanded reference vs predictions plot
+
+![image](https://user-images.githubusercontent.com/20996215/122837230-99b44900-d2a8-11eb-9644-f087d2a99fa6.png)
+
+This plot is similar to the left panel of #1, but is split into atom pairs to better showcase the "bondwise" objective function. Colored lines - reference reaction locations (colored according to distance from predictions, see colorbar on #3), Black - predicted reaction locations, orange - expanding windows to measure distance from predicted to reference reactions
+
+3. Cluster transitions of reference reaction events
+
+![image](https://user-images.githubusercontent.com/20996215/122839056-257ba480-d2ac-11eb-8616-e596d54b34dd.png)
+
+The arrows are reference reaction events where the tail shows the initial cluster index (y-axis) and the head the final cluster index. Arrow color depends on proximity to a predicted reaction event. The dotted lines show time frames where the cluster index is stable and unchanging. The x-axis is not linear to exclude empty space.
+
+4. Bond order, fourier transform, 1st derivative column plot
+
+![image](https://user-images.githubusercontent.com/20996215/122843443-5233ba00-d2b4-11eb-9195-59565d5f1415.png)
+
+Plot that depicts how the predicted reaction events arise from the bond order time series. Each row is an atom pair. The leftmost column is the bond order time series of each atom pair in orange and the smoothed series in purple. The center column is the fourier transform of the bond order time series with orange and purple same as the right. The black trace is the actual low-pass filter that is applied. The right column is the first time derivative (green) of the smoothed time series. The horizontal, dashed black lines are the applied thresholds and the extrema of the green trace beyond those thresholds (blue dots) are the locations of the predicted reaction events.
+
+5. Reference reaction events, ranked by distance
+
+![image](https://user-images.githubusercontent.com/20996215/122844176-eeaa8c00-d2b5-11eb-8e49-631831ca3ef3.png)
+
+The x-axis is simply a count of sorted reference reaction events according to their proximity to predicted reaction events. This plot is intended to provide a quick snapshot of how much of the reference set is easily predicted by the method.
