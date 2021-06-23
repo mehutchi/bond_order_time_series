@@ -1,0 +1,16 @@
+sigma = 50.00  threshold = 0.70
+45 total reference reaction events
+distances are from reference reaction event to nearest BOTS reaction event
+
+	cluster number	AVERAGE dist	MEDIAN dist	MAX dist	STANDARD DEVIATION	NUMBER OF EVENTS
+
+	4		3.00		3.00		3.00		0.00			1
+	7		12.50		10.50		37.00		10.50			10
+	10		16.35		9.00		67.00		17.33			20
+	1		22.86		15.50		105.00		27.47			14
+	8		33.67		23.50		109.00		34.68			6
+	9		43.38		33.50		78.00		26.67			8
+	2		66.33		49.00		105.00		27.39			3
+	5		69.56		75.00		133.00		51.78			16
+	3		96.40		123.50		133.00		45.27			10
+	6		106.00		106.00		109.00		3.00			2
