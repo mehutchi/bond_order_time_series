@@ -1,0 +1,5 @@
+Total trajectory length 2001
+
+BOTS predicted reaction event locations using parameter combination sigma=50.0 cm^-1 and threshold=0.7xsigma
+
+[ 180, 193, 501, 655, 769, 841, 915, 957, 978, 1153, 1157, 1167 ]
