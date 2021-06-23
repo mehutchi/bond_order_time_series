@@ -8,8 +8,8 @@ https://pubs.acs.org/doi/10.1021/acs.jctc.9b01039
 
 Citation:
 
-Bond-Order Time Series Analysis for Detecting Reaction Events in Ab Initio Molecular Dynamics Simulations
-Marshall Hutchings, Johnson Liu, Yudong Qiu, Chenchen Song, and Lee-Ping Wang
+Bond-Order Time Series Analysis for Detecting Reaction Events in Ab Initio Molecular Dynamics Simulations.
+Marshall Hutchings, Johnson Liu, Yudong Qiu, Chenchen Song, and Lee-Ping Wang.
 Journal of Chemical Theory and Computation 2020 16 (3), 1606-1617
 DOI: 10.1021/acs.jctc.9b01039
 
