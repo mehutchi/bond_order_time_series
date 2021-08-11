@@ -1,12 +1,12 @@
 # bond_order_time_series
 
-A time-saving method that uses bond order time series obtained from ab initio molecular dynamics to quickly and accurately predict temporal locations of reaction events. The method is tuned using two adjustable parameters to bring reaction event predictions into closer agreement with an ideal reference set of reaction events given infinite computing resources.
+**Overview** - A time-saving method that uses bond order time series obtained from ab initio molecular dynamics to quickly and accurately predict temporal locations of reaction events. The method is tuned using two adjustable parameters to bring reaction event predictions into closer agreement with an ideal reference set of reaction events given infinite computing resources.
 
 Publication of this method can be found here:
 
 https://pubs.acs.org/doi/10.1021/acs.jctc.9b01039
 
-Citation:
+**Citation:**
 
 Bond-Order Time Series Analysis for Detecting Reaction Events in Ab Initio Molecular Dynamics Simulations.
 Marshall Hutchings, Johnson Liu, Yudong Qiu, Chenchen Song, and Lee-Ping Wang.
