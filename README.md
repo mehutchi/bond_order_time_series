@@ -35,7 +35,7 @@ Objective function scores of zero and those below 0.5 are shown as whitespace an
 
 Once the method settings have been identified, we can re-run the code with a single sigma and threshold as inputs to see the predictions. This option also produces five plots (which can be found along with additional diagnostic output files under the /single_point/ directory) to analyze quality of fit (showing sigma = 50 and mu = 0.7\*sigma):
 
-1. Simplified reference vs predictions plot with corresponding AUC
+**1. Simplified reference vs predictions plot with corresponding AUC**
 
 ![image](https://user-images.githubusercontent.com/20996215/122836227-b64f8180-d2a6-11eb-8fd0-5aa27b88bc50.png)
 
@@ -43,25 +43,25 @@ Left Panel: red - reference reaction locations, blue - predicted reaction locati
 
 Right Panel: TPR vs FPR plot, similar to receiver operating characteristic. Dark orange - (TPR, FPR), light orange - area under the curve, gray - remainder of TPR vs FPR plot
 
-2. Expanded reference vs predictions plot
+**2. Expanded reference vs predictions plot**
 
 ![image](https://user-images.githubusercontent.com/20996215/122837230-99b44900-d2a8-11eb-9644-f087d2a99fa6.png)
 
 This plot is similar to the left panel of #1, but is split into atom pairs to better showcase the "bondwise" objective function. Colored lines - reference reaction locations (colored according to distance from predictions, see colorbar on #3), Black - predicted reaction locations, orange - expanding windows to measure distance from predicted to reference reactions
 
-3. Cluster transitions of reference reaction events
+**3. Cluster transitions of reference reaction events**
 
 ![image](https://user-images.githubusercontent.com/20996215/122839056-257ba480-d2ac-11eb-8616-e596d54b34dd.png)
 
 The arrows are reference reaction events where the tail shows the initial cluster index (y-axis) and the head the final cluster index. Arrow color depends on proximity to a predicted reaction event. The dotted lines show time frames where the cluster index is stable and unchanging. The x-axis is not linear to exclude empty space.
 
-4. Bond order, Fourier transform, 1st derivative column plot
+**4. Bond order, Fourier transform, 1st derivative column plot**
 
 ![image](https://user-images.githubusercontent.com/20996215/122843443-5233ba00-d2b4-11eb-9195-59565d5f1415.png)
 
 Plot that depicts how the predicted reaction events arise from the bond order time series. Each row is an atom pair. The leftmost column is the bond order time series of each atom pair in orange and the smoothed series in purple. The center column is the Fourier transform of the bond order time series with orange and purple same as the right. The black trace is the actual low-pass filter that is applied. The right column is the first time derivative (green) of the smoothed time series. The horizontal, dashed black lines are the applied thresholds and the extrema of the green trace beyond those thresholds (blue dots) are the locations of the predicted reaction events.
 
-5. Reference reaction events, ranked by distance
+**5. Reference reaction events, ranked by distance**
 
 ![image](https://user-images.githubusercontent.com/20996215/122844176-eeaa8c00-d2b5-11eb-8e49-631831ca3ef3.png)
 
